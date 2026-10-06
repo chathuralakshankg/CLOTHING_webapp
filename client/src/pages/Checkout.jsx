@@ -25,7 +25,7 @@ const Checkout = () => {
       navigate('/cart');
       return;
     }
-    
+
     // Check for stock validation upon entering checkout
     const invalidItems = cartItems.filter(item => item.quantity > item.variant.stock);
     if (invalidItems.length > 0) {
@@ -64,7 +64,7 @@ const Checkout = () => {
 
   const getItemPrice = (item) => item.product.discountedPrice || item.product.price;
   const subtotal = cartItems.reduce((acc, item) => acc + (getItemPrice(item) * item.quantity), 0);
-  
+
   const shippingFee = settings?.shippingFee !== undefined ? Number(settings.shippingFee) : 400;
   const freeThreshold = settings?.freeShippingThreshold !== undefined ? Number(settings.freeShippingThreshold) : 15000;
   const isFreeShipping = subtotal >= freeThreshold;
@@ -145,12 +145,12 @@ const Checkout = () => {
     <Layout className="min-h-screen bg-white">
       <AnnouncementBar />
       <Navbar />
-      
+
       <Content className="max-w-7xl mx-auto w-full px-6 py-12">
         <Link to="/cart" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black transition-colors mb-8">
           <ArrowLeft size={16} /> Back to Bag
         </Link>
-        
+
         <Title level={2} className="!mb-8 !font-serif">Checkout</Title>
 
         <div className="flex flex-col lg:flex-row gap-12">
@@ -245,9 +245,9 @@ const Checkout = () => {
                 </Form.Item>
               </div>
 
-              <Button 
-                type="primary" 
-                htmlType="submit" 
+              <Button
+                type="primary"
+                htmlType="submit"
                 loading={loading}
                 className="bg-black w-full h-14 text-sm tracking-widest uppercase font-semibold"
               >
@@ -260,15 +260,15 @@ const Checkout = () => {
           <div className="w-full lg:w-1/3">
             <div className="bg-gray-50 p-6 md:p-8 rounded-sm sticky top-24 border border-gray-100">
               <Title level={4} className="!font-serif !mb-6">Order Summary</Title>
-              
+
               <div className="flex flex-col gap-4 mb-6">
                 {cartItems.map(item => (
                   <div key={item.id} className="flex gap-4 items-center">
                     <div className="relative w-16 h-20 bg-gray-100 flex-shrink-0">
-                      <img 
-                        src={item.variant.image || (item.product.images && item.product.images[0])} 
-                        alt={item.product.name} 
-                        className="w-full h-full object-cover" 
+                      <img
+                        src={item.variant.image || (item.product.images && item.product.images[0])}
+                        alt={item.product.name}
+                        className="w-full h-full object-cover"
                       />
                       <span className="absolute -top-2 -right-2 bg-gray-500 text-white w-5 h-5 flex items-center justify-center rounded-full text-xs">
                         {item.quantity}
@@ -289,7 +289,7 @@ const Checkout = () => {
                 <Text className="text-gray-600">Subtotal</Text>
                 <Text className="font-medium">LKR {subtotal.toLocaleString()}</Text>
               </div>
-              
+
               <div className="flex justify-between items-start mb-3 text-sm">
                 <div>
                   <Text className="text-gray-600 block">Island-wide Shipping</Text>
