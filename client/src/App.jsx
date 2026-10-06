@@ -6,6 +6,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import ResetPassword from './pages/ResetPassword';
 import AdminRoute from './components/AdminRoute';
 import ProtectedRoute from './components/ProtectedRoute';
+import RoleRoute from './components/RoleRoute';
 import AdminLayout from './layouts/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -88,17 +89,17 @@ export default function App() {
             <Route path="/resetpassword/:token" element={<ResetPassword />} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             
-            {/* Admin Routes */}
+            {/* Admin Routes with Role Based Protection */}
             <Route path="/admin" element={<AdminRoute />}>
               <Route element={<AdminLayout />}>
                 <Route path="dashboard" element={<Dashboard />} />
-                <Route path="users" element={<AdminUsers />} />
-                <Route path="products" element={<AdminProducts />} />
-                <Route path="orders" element={<AdminOrders />} />
-                <Route path="payments" element={<AdminReports />} />
-                <Route path="reviews" element={<AdminReviews />} />
-                <Route path="tickets" element={<AdminTickets />} />
-                <Route path="settings" element={<AdminSettings />} />
+                <Route path="users" element={<RoleRoute allowedRoles={['developer', 'owner']}><AdminUsers /></RoleRoute>} />
+                <Route path="products" element={<RoleRoute allowedRoles={['developer', 'owner', 'inventory_handler']}><AdminProducts /></RoleRoute>} />
+                <Route path="orders" element={<RoleRoute allowedRoles={['developer', 'owner', 'sales_staff']}><AdminOrders /></RoleRoute>} />
+                <Route path="payments" element={<RoleRoute allowedRoles={['developer', 'owner']}><AdminReports /></RoleRoute>} />
+                <Route path="reviews" element={<RoleRoute allowedRoles={['developer', 'owner']}><AdminReviews /></RoleRoute>} />
+                <Route path="tickets" element={<RoleRoute allowedRoles={['developer', 'owner', 'sales_staff']}><AdminTickets /></RoleRoute>} />
+                <Route path="settings" element={<RoleRoute allowedRoles={['developer', 'owner']}><AdminSettings /></RoleRoute>} />
               </Route>
             </Route>
           </Routes>

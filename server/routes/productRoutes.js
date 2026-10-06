@@ -17,17 +17,17 @@ const upload = multer({ storage });
 
 router.route('/')
   .get(getProducts)
-  .post(protect, authorize('admin', 'developer', 'owner', 'inventory_handler'), upload.any(), createProduct);
+  .post(protect, authorize('developer', 'owner', 'inventory_handler'), upload.any(), createProduct);
 
 router.route('/low-stock')
-  .get(protect, authorize('admin', 'developer', 'owner', 'inventory_handler', 'sales_staff'), getLowStockProducts);
+  .get(protect, authorize('developer', 'owner', 'inventory_handler'), getLowStockProducts);
 
 router.route('/:id/status')
-  .patch(protect, authorize('admin', 'developer', 'owner', 'inventory_handler'), toggleProductStatus);
+  .patch(protect, authorize('developer', 'owner', 'inventory_handler'), toggleProductStatus);
 
 router.route('/:id')
   .get(getProductById)
-  .put(protect, authorize('admin', 'developer', 'owner', 'inventory_handler'), upload.any(), updateProduct)
-  .delete(protect, authorize('admin', 'developer', 'owner', 'inventory_handler'), deleteProduct);
+  .put(protect, authorize('developer', 'owner', 'inventory_handler'), upload.any(), updateProduct)
+  .delete(protect, authorize('developer', 'owner', 'inventory_handler'), deleteProduct);
 
 module.exports = router;

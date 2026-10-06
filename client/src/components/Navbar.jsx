@@ -118,7 +118,11 @@ const Navbar = () => {
           {user ? (
             <div className="flex items-center gap-5">
               {['developer', 'owner', 'inventory_handler', 'sales_staff'].includes(user.role) && (
-                <Link to="/admin/dashboard" className="text-gray-900 hover:text-gray-500 transition-colors" title="Admin Dashboard">
+                <Link 
+                  to="/admin/dashboard" 
+                  className="text-gray-900 hover:text-gray-500 transition-colors" 
+                  title="Admin Dashboard"
+                >
                   <LayoutDashboard size={18} strokeWidth={1.5} />
                 </Link>
               )}

@@ -219,11 +219,91 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// @desc    Update staff or user account
+// @route   PUT /api/users/:id
+// @access  Private (developer, owner)
+const updateStaff = async (req, res) => {
+  try {
+    const { name, email, role, password } = req.body;
+    const userToUpdate = await User.findById(req.params.id);
+
+    if (!userToUpdate) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Protection: developer account can only be edited by developer
+    if (userToUpdate.role === 'developer' && req.user.role !== 'developer') {
+      return res.status(403).json({ message: 'Only developers can edit developer accounts' });
+    }
+
+    // Protection: owner cannot edit other owners unless it is their own account
+    if (
+      req.user.role === 'owner' &&
+      userToUpdate.role === 'owner' &&
+      req.user._id.toString() !== userToUpdate._id.toString()
+    ) {
+      return res.status(403).json({ message: 'Not authorized to edit another owner account' });
+    }
+
+    // If changing role
+    if (role && role !== userToUpdate.role) {
+      // Valid roles
+      if (!['owner', 'inventory_handler', 'sales_staff', 'customer'].includes(role)) {
+        return res.status(400).json({ message: 'Invalid role' });
+      }
+
+      // Only developer can assign or modify 'owner' role
+      if ((role === 'owner' || userToUpdate.role === 'owner') && req.user.role !== 'developer') {
+        return res.status(403).json({ message: 'Only developers can assign or modify the owner role' });
+      }
+
+      // Owner can only assign 'inventory_handler' or 'sales_staff'
+      if (['inventory_handler', 'sales_staff'].includes(role) && !['developer', 'owner'].includes(req.user.role)) {
+        return res.status(403).json({ message: 'Not authorized to assign staff roles' });
+      }
+
+      userToUpdate.role = role;
+    }
+
+    // If changing email, check for duplicate
+    if (email && email !== userToUpdate.email) {
+      const emailExists = await User.findOne({ email });
+      if (emailExists && emailExists._id.toString() !== userToUpdate._id.toString()) {
+        return res.status(400).json({ message: 'Email already in use by another account' });
+      }
+      userToUpdate.email = email;
+    }
+
+    if (name) {
+      userToUpdate.name = name;
+    }
+
+    if (password && password.trim().length >= 6) {
+      userToUpdate.password = password;
+    }
+
+    const updatedUser = await userToUpdate.save();
+
+    res.json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      message: 'Staff updated successfully'
+    });
+  } catch (error) {
+    console.error('Update Staff Error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
   getUserProfile,
   updateUserProfile,
   getStaff,
   createStaff,
+  updateStaff,
   getCustomers,
   deleteUser
 };
+

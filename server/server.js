@@ -21,6 +21,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const settingRoutes = require('./routes/settingRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const categoryDiscountRoutes = require('./routes/categoryDiscountRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -32,6 +33,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/discounts', categoryDiscountRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'Server is running normally.' });

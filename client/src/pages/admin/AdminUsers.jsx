@@ -13,16 +13,21 @@ const AdminUsers = () => {
   const [loading, setLoading] = useState(false);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
   const { user: currentUser } = useContext(AuthContext);
 
   const fetchStaff = async () => {
     setLoading(true);
     try {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      const userInfo = JSON.parse(localStorage.getItem('userInfo')) || currentUser;
       const res = await fetch(`${API_URL}/api/users/staff`, {
         headers: {
-          'Authorization': `Bearer ${userInfo.token}`
+          'Authorization': `Bearer ${userInfo?.token}`
         }
       });
       const data = await res.json();
@@ -41,10 +46,10 @@ const AdminUsers = () => {
   const fetchCustomers = async () => {
     setCustomersLoading(true);
     try {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      const userInfo = JSON.parse(localStorage.getItem('userInfo')) || currentUser;
       const res = await fetch(`${API_URL}/api/users/customers`, {
         headers: {
-          'Authorization': `Bearer ${userInfo.token}`
+          'Authorization': `Bearer ${userInfo?.token}`
         }
       });
       const data = await res.json();
@@ -67,11 +72,11 @@ const AdminUsers = () => {
 
   const handleDelete = async (id, isCustomer = false) => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      const userInfo = JSON.parse(localStorage.getItem('userInfo')) || currentUser;
       const res = await fetch(`${API_URL}/api/users/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${userInfo.token}`
+          'Authorization': `Bearer ${userInfo?.token}`
         }
       });
       const data = await res.json();
@@ -93,12 +98,12 @@ const AdminUsers = () => {
 
   const handleAddSubmit = async (values) => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      const userInfo = JSON.parse(localStorage.getItem('userInfo')) || currentUser;
       const res = await fetch(`${API_URL}/api/users/staff`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userInfo.token}`
+          'Authorization': `Bearer ${userInfo?.token}`
         },
         body: JSON.stringify(values)
       });
@@ -114,6 +119,60 @@ const AdminUsers = () => {
       }
     } catch (err) {
       message.error('An error occurred');
+    }
+  };
+
+  const handleEditClick = (record) => {
+    setEditingStaff(record);
+    editForm.setFieldsValue({
+      name: record.name,
+      email: record.email,
+      role: record.role,
+      password: ''
+    });
+    setIsEditModalVisible(true);
+  };
+
+  const handleEditSubmit = async (values) => {
+    if (!editingStaff) return;
+    setEditLoading(true);
+    try {
+      const userInfo = JSON.parse(localStorage.getItem('userInfo')) || currentUser;
+      
+      const payload = {
+        name: values.name,
+        email: values.email,
+        role: values.role,
+      };
+
+      if (values.password && values.password.trim().length >= 6) {
+        payload.password = values.password.trim();
+      }
+
+      const res = await fetch(`${API_URL}/api/users/${editingStaff._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userInfo?.token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        message.success(data.message || 'Staff updated successfully');
+        setIsEditModalVisible(false);
+        setEditingStaff(null);
+        editForm.resetFields();
+        fetchStaff();
+      } else {
+        message.error(data.message || 'Failed to update staff');
+      }
+    } catch (err) {
+      console.error('Update staff error:', err);
+      message.error('An error occurred while updating staff');
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -141,10 +200,24 @@ const AdminUsers = () => {
         const isSelf = currentUserId && record._id === currentUserId;
         const isDeveloper = record.role === 'developer';
         const isOwnerRestricted = currentUser?.role === 'owner' && (record.role === 'owner' || record.role === 'developer');
+        
         const canDelete = !isSelf && !isDeveloper && !isOwnerRestricted;
+        const canEdit = !isDeveloper || currentUser?.role === 'developer';
+        const canModify = canEdit && !isOwnerRestricted;
 
         return (
-          <Space size="middle">
+          <Space size="small">
+            <Button 
+              type="default" 
+              size="small"
+              icon={<Edit size={14} />} 
+              onClick={() => handleEditClick(record)}
+              disabled={!canModify}
+              className="border-gray-300 hover:border-black text-gray-700 hover:text-black flex items-center gap-1 text-xs font-medium"
+              title={!canModify ? "Not authorized to edit this account" : "Edit staff details"}
+            >
+              Edit
+            </Button>
             <Popconfirm
               title={`Are you sure you want to delete ${record.name}?`}
               description="This will permanently delete this staff member."
@@ -157,7 +230,8 @@ const AdminUsers = () => {
               <Button 
                 type="text" 
                 danger 
-                icon={<Trash2 size={16} />} 
+                size="small"
+                icon={<Trash2 size={15} />} 
                 disabled={!canDelete}
                 title={!canDelete ? (isSelf ? "Cannot delete own account" : "Cannot delete this user") : "Delete staff member"}
               />
@@ -244,7 +318,7 @@ const AdminUsers = () => {
       </div>
 
       <Tabs defaultActiveKey="staff" className="bg-white border border-gray-100 rounded-lg p-4">
-        <Tabs.TabPane tab={<span className="font-medium px-4">Staff Members</span>} key="staff">
+        <Tabs.TabPane tab={<span className="font-medium px-4">Staff Members ({users.length})</span>} key="staff">
           <Table 
             columns={staffColumns} 
             dataSource={users} 
@@ -253,7 +327,7 @@ const AdminUsers = () => {
             className="admin-table-card mt-2"
           />
         </Tabs.TabPane>
-        <Tabs.TabPane tab={<span className="font-medium px-4">Customers</span>} key="customers">
+        <Tabs.TabPane tab={<span className="font-medium px-4">Customers ({customers.length})</span>} key="customers">
           <Table 
             columns={customerColumns} 
             dataSource={customers} 
@@ -264,6 +338,7 @@ const AdminUsers = () => {
         </Tabs.TabPane>
       </Tabs>
 
+      {/* Add Staff Modal */}
       <Modal
         title={<span className="font-serif text-xl">Add New Staff</span>}
         open={isModalVisible}
@@ -297,6 +372,61 @@ const AdminUsers = () => {
           <Form.Item className="mb-0 mt-8 text-right">
             <Button onClick={() => setIsModalVisible(false)} className="mr-3">Cancel</Button>
             <Button type="primary" htmlType="submit" className="bg-black">Create User</Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Edit Staff Modal */}
+      <Modal
+        title={<span className="font-serif text-xl">Edit Staff Member</span>}
+        open={isEditModalVisible}
+        onCancel={() => {
+          setIsEditModalVisible(false);
+          setEditingStaff(null);
+          editForm.resetFields();
+        }}
+        footer={null}
+      >
+        <Form form={editForm} layout="vertical" onFinish={handleEditSubmit} className="mt-6">
+          <Form.Item name="name" label="Full Name" rules={[{ required: true, message: 'Please enter name' }]}>
+            <Input size="large" />
+          </Form.Item>
+          
+          <Form.Item name="email" label="Email Address" rules={[{ required: true, type: 'email' }]}>
+            <Input size="large" />
+          </Form.Item>
+
+          <Form.Item 
+            name="password" 
+            label="New Password (optional)" 
+            extra="Leave blank to keep existing password"
+            rules={[{ min: 6, message: 'Password must be at least 6 characters' }]}
+          >
+            <Input.Password size="large" placeholder="Enter new password if changing" />
+          </Form.Item>
+          
+          <Form.Item name="role" label="Role" rules={[{ required: true }]}>
+            <Select size="large">
+              {availableRoles.map(role => (
+                <Option key={role.value} value={role.value}>{role.label}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+          
+          <Form.Item className="mb-0 mt-8 text-right">
+            <Button 
+              onClick={() => {
+                setIsEditModalVisible(false);
+                setEditingStaff(null);
+                editForm.resetFields();
+              }} 
+              className="mr-3"
+            >
+              Cancel
+            </Button>
+            <Button type="primary" htmlType="submit" loading={editLoading} className="bg-black">
+              Save Changes
+            </Button>
           </Form.Item>
         </Form>
       </Modal>

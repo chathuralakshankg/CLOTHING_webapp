@@ -10,9 +10,9 @@ const {
 } = require('../controllers/notificationController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-// All notification routes are protected for admin/staff
+// All notification routes are protected for authorized roles
 router.use(protect);
-router.use(authorize('admin', 'developer', 'owner', 'inventory_handler', 'sales_staff'));
+router.use(authorize('developer', 'owner', 'inventory_handler', 'sales_staff'));
 
 router.route('/')
   .get(getNotifications);

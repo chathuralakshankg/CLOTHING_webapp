@@ -7,7 +7,14 @@ const { checkAndNotifyLowStock } = require('../utils/stockNotification');
 // @access  Private/Admin
 const getNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({})
+    let filter = {};
+    if (req.user.role === 'inventory_handler') {
+      filter = { type: { $ne: 'ORDER_CREATED' } };
+    } else if (req.user.role === 'sales_staff') {
+      filter = { type: 'ORDER_CREATED' };
+    }
+
+    const notifications = await Notification.find(filter)
       .populate('product', 'name images price')
       .sort({ createdAt: -1 })
       .limit(50);
@@ -22,7 +29,14 @@ const getNotifications = async (req, res) => {
 // @access  Private/Admin
 const getUnreadCount = async (req, res) => {
   try {
-    const count = await Notification.countDocuments({ isRead: false });
+    let filter = { isRead: false };
+    if (req.user.role === 'inventory_handler') {
+      filter.type = { $ne: 'ORDER_CREATED' };
+    } else if (req.user.role === 'sales_staff') {
+      filter.type = 'ORDER_CREATED';
+    }
+
+    const count = await Notification.countDocuments(filter);
     res.json({ count });
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch unread count', error: error.message });

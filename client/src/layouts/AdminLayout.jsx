@@ -119,7 +119,7 @@ const AdminLayout = () => {
       key: '/admin/payments',
       icon: <CreditCard size={18} />,
       label: 'Payments & Sales Reports',
-      roles: ['developer', 'owner', 'sales_staff']
+      roles: ['developer', 'owner']
     },
     {
       key: '/admin/reviews',
@@ -137,7 +137,7 @@ const AdminLayout = () => {
       key: 'divider',
       type: 'divider',
       style: { backgroundColor: '#333' },
-      roles: ['developer', 'owner', 'inventory_handler', 'sales_staff']
+      roles: ['developer', 'owner']
     },
     {
       key: '/admin/settings',
@@ -326,11 +326,15 @@ const AdminLayout = () => {
             <div className="w-px h-6 bg-gray-200"></div>
 
             <div className="flex items-center gap-3">
-              <Avatar size={36} className="bg-[#333] font-serif font-bold text-white">AD</Avatar>
+              <Avatar size={36} className="bg-[#111] font-serif font-bold text-white">
+                {user?.name ? user.name.slice(0, 2).toUpperCase() : 'AD'}
+              </Avatar>
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-gray-900 leading-tight">Admin Area</span>
-                <span className="text-[10px] text-gray-500 leading-tight">
-                  {user?.name || 'Genevieve D. (Director)'}
+                <span className="text-xs font-bold text-gray-900 leading-tight">
+                  {user?.name || 'Staff User'}
+                </span>
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-[#d4af37] leading-tight mt-0.5">
+                  {user?.role === 'developer' ? 'Developer' : user?.role === 'owner' ? 'Store Owner' : user?.role === 'inventory_handler' ? 'Inventory Handler' : user?.role === 'sales_staff' ? 'Sales Staff' : 'Staff'}
                 </span>
               </div>
             </div>
