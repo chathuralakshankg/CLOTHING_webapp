@@ -90,8 +90,7 @@ const Checkout = () => {
           price: getItemPrice(item),
           product: item.product._id,
           variant: {
-            size: item.variant.size,
-            color: item.variant.color
+            size: item.variant.size
           }
         })),
         shippingDetails: {
@@ -276,7 +275,7 @@ const Checkout = () => {
                     </div>
                     <div className="flex-1 flex flex-col">
                       <span className="font-medium text-sm line-clamp-1">{item.product.name}</span>
-                      <span className="text-xs text-gray-500">{item.variant.size} {item.variant.color ? `/ ${item.variant.color}` : ''}</span>
+                      <span className="text-xs text-gray-500">Size: {item.variant.size}</span>
                     </div>
                     <span className="font-medium text-sm">LKR {(getItemPrice(item) * item.quantity).toLocaleString()}</span>
                   </div>

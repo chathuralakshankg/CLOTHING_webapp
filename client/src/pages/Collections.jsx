@@ -12,7 +12,7 @@ const { Option } = Select;
 
 const SUB_CATEGORIES = {
   Menswear: ['Shirts', 'T-Shirts', 'Trousers', 'Jeans', 'Shorts', 'Sarongs'],
-  Womenswear: ['Blouses & Tops', 'Dresses', 'Frocks', 'Skirts', 'Trousers/Jeans', 'Sarees'],
+  Womenswear: ['T-Shirts', 'Blouses & Tops', 'Dresses', 'Frocks', 'Skirts', 'Trousers/Jeans', 'Sarees'],
   Accessories: ['Ties', 'Belts', 'Vests', 'Socks'],
 };
 
@@ -79,8 +79,12 @@ const Collections = () => {
       return false;
     }
     // 2. Sub Category
-    if (selectedSubCategories.length > 0 && !selectedSubCategories.includes(product.subCategory)) {
-      return false;
+    if (selectedSubCategories.length > 0) {
+      const prodSub = (product.subCategory || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isSubMatch = selectedSubCategories.some(sub => 
+        sub === product.subCategory || sub.toLowerCase().replace(/[^a-z0-9]/g, '') === prodSub
+      );
+      if (!isSubMatch) return false;
     }
     // 3. Price
     if (product.price < priceRange[0] || product.price > priceRange[1]) {

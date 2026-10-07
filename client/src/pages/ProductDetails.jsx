@@ -21,7 +21,6 @@ const ProductDetails = () => {
   const [mainImage, setMainImage] = useState('');
   
   // Selections
-  const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
@@ -43,18 +42,13 @@ const ProductDetails = () => {
         setMainImage(data.images[0]);
       }
       
-      // Auto-select color & size from first available variant with stock
+      // Auto-select size from first available variant with stock
       const inStockVar = data.variants?.find(v => v.stock > 0);
       if (inStockVar) {
-        if (inStockVar.color) setSelectedColor(inStockVar.color);
         if (inStockVar.size) setSelectedSize(inStockVar.size);
-        if (inStockVar.image) setMainImage(inStockVar.image);
       } else if (data.variants && data.variants.length > 0) {
-        if (data.variants[0].color) setSelectedColor(data.variants[0].color);
         if (data.variants[0].size) setSelectedSize(data.variants[0].size);
-        if (data.variants[0].image) setMainImage(data.variants[0].image);
       } else {
-        setSelectedColor(null);
         setSelectedSize(null);
       }
     } catch (error) {
@@ -118,56 +112,17 @@ const ProductDetails = () => {
     );
   }
 
-  // Derive unique colors that were ACTUALLY added to this product
-  const availableColors = [...new Set(product.variants?.map(v => v.color?.trim()).filter(Boolean))];
-
-  // Derive sizes that were ACTUALLY added to this product for the selected color (or all variants)
-  const sizesForSelectedColor = product.variants
-    ?.filter(v => (selectedColor ? v.color?.toLowerCase() === selectedColor.toLowerCase() : true))
-    .map(v => v.size?.trim())
-    .filter(Boolean);
-
-  const displaySizes = [...new Set(
-    (sizesForSelectedColor && sizesForSelectedColor.length > 0)
-      ? sizesForSelectedColor
-      : product.variants?.map(v => v.size?.trim()).filter(Boolean) || []
-  )];
+  // Derive sizes that were ACTUALLY added to this product
+  const displaySizes = [...new Set(product.variants?.map(v => v.size?.trim()).filter(Boolean) || [])];
 
   // Current variant based on user selection
   const currentVariant = product.variants?.find(v => {
-    const matchesColor = selectedColor ? v.color?.toLowerCase() === selectedColor.toLowerCase() : true;
-    const matchesSize = selectedSize ? v.size?.toLowerCase() === selectedSize.toLowerCase() : true;
-    return matchesColor && matchesSize;
-  }) || product.variants?.find(v => {
     return selectedSize ? v.size?.toLowerCase() === selectedSize.toLowerCase() : true;
   }) || (product.variants && product.variants.length > 0 ? product.variants[0] : null);
 
   const currentVariantStock = currentVariant ? currentVariant.stock : 0;
   const isCurrentSizeInStock = currentVariant ? currentVariant.stock > 0 : false;
   const totalStock = product.variants?.reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
-
-  const handleColorSelect = (color) => {
-    setSelectedColor(color);
-    setQuantity(1);
-    
-    // Auto update main image to variant image if available
-    const variantWithImage = product.variants?.find(v => v.color?.toLowerCase() === color.toLowerCase() && v.image);
-    if (variantWithImage && variantWithImage.image) {
-      setMainImage(variantWithImage.image);
-    }
-
-    // Auto-select a size that actually exists for this color if current size isn't in it
-    const sizesForColor = product.variants
-      ?.filter(v => v.color?.toLowerCase() === color.toLowerCase())
-      .map(v => v.size?.trim())
-      .filter(Boolean);
-
-    if (sizesForColor && sizesForColor.length > 0) {
-      if (!sizesForColor.some(s => s.toLowerCase() === selectedSize?.toLowerCase())) {
-        setSelectedSize(sizesForColor[0]);
-      }
-    }
-  };
 
   const handleAddToCart = () => {
     if (displaySizes.length > 0 && !selectedSize) {
@@ -219,23 +174,7 @@ const ProductDetails = () => {
                   <img src={img} alt={`${product.name} ${idx}`} className="w-full h-full object-cover" />
                 </div>
               ))}
-              {/* Variant images in thumbnail list */}
-              {product.variants?.filter(v => v.image && !product.images?.includes(v.image)).map((v, idx) => (
-                <div 
-                  key={`var-img-${idx}`} 
-                  className={`w-20 h-24 flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                    mainImage === v.image ? 'border-neutral-900 shadow-sm' : 'border-neutral-200/80 opacity-70 hover:opacity-100'
-                  }`}
-                  onClick={() => {
-                    setMainImage(v.image);
-                    if (v.color) setSelectedColor(v.color);
-                    if (v.size) setSelectedSize(v.size);
-                  }}
-                  title={`Color: ${v.color || 'Standard'}`}
-                >
-                  <img src={v.image} alt={v.color || product.name} className="w-full h-full object-cover" />
-                </div>
-              ))}
+
             </div>
             
             {/* Main Display */}
@@ -343,55 +282,6 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* COLOR Section (Only displayed if variations with color exist) */}
-            {availableColors.length > 0 && (
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs font-bold tracking-wider text-neutral-900 uppercase">
-                    COLOR: {selectedColor ? selectedColor.toUpperCase() : availableColors[0]?.toUpperCase()}
-                  </span>
-                  <span className="text-[11px] font-semibold tracking-wider text-neutral-400 uppercase">
-                    {availableColors.length} {availableColors.length <= 1 ? 'PALETTE' : 'PALETTES'} AVAILABLE
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  {availableColors.map(color => {
-                    const varImg = product.variants?.find(v => v.color?.toLowerCase() === color.toLowerCase() && v.image)?.image || product.images?.[0];
-                    const isColorSelected = selectedColor?.toLowerCase() === color.toLowerCase();
-
-                    return (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => handleColorSelect(color)}
-                        className={`relative w-14 h-16 rounded-lg border-2 p-0.5 overflow-hidden transition-all cursor-pointer ${
-                          isColorSelected 
-                            ? 'border-neutral-900 shadow-sm' 
-                            : 'border-neutral-200 hover:border-neutral-400 opacity-80 hover:opacity-100'
-                        }`}
-                      >
-                        {varImg ? (
-                          <img src={varImg} alt={color} className="w-full h-full object-cover rounded" />
-                        ) : (
-                          <div className="w-full h-full bg-neutral-100 rounded flex items-center justify-center text-[10px] font-bold uppercase text-neutral-600">
-                            {color}
-                          </div>
-                        )}
-                        {isColorSelected && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/15">
-                            <div className="w-6 h-6 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-md">
-                              <Check size={12} strokeWidth={3} />
-                            </div>
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* SELECT SIZE Section (ONLY added variations are shown) */}
             {displaySizes.length > 0 && (
               <div className="mb-6">
@@ -413,11 +303,8 @@ const ProductDetails = () => {
                   {displaySizes.map(sizeOption => {
                     const isSelected = selectedSize?.toLowerCase() === sizeOption.toLowerCase();
 
-                    // Find variant stock for this specific size and color
-                    const variantForSize = product.variants?.find(v => {
-                      const matchesColor = selectedColor ? v.color?.toLowerCase() === selectedColor.toLowerCase() : true;
-                      return matchesColor && v.size?.toLowerCase() === sizeOption.toLowerCase();
-                    });
+                    // Find variant stock for this specific size
+                    const variantForSize = product.variants?.find(v => v.size?.toLowerCase() === sizeOption.toLowerCase());
                     const isOutOfStock = variantForSize ? variantForSize.stock <= 0 : false;
 
                     return (

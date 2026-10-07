@@ -67,7 +67,6 @@ const Cart = () => {
                       </div>
                       
                       <div className="text-sm text-gray-500 mt-1 flex flex-col gap-1">
-                        {item.variant.color && <span>Color: {item.variant.color}</span>}
                         <span>Size: {item.variant.size}</span>
                         <div className="flex items-center gap-1.5 text-xs">
                           <span className="font-semibold text-gray-900">LKR {getItemPrice(item).toLocaleString()} each</span>

@@ -443,7 +443,7 @@ const AdminOrders = () => {
                             <img src={item.image} alt={item.name} className="w-10 h-10 object-cover rounded bg-gray-100" />
                             <div>
                               <p className="font-medium">{item.name}</p>
-                              <p className="text-xs text-gray-500">Size: {item.variant.size} {item.variant.color ? `| Color: ${item.variant.color}` : ''}</p>
+                              <p className="text-xs text-gray-500">Size: {item.variant.size}</p>
                             </div>
                           </div>
                         </td>

@@ -14,8 +14,8 @@ export const CartProvider = ({ children }) => {
   }, [cartItems]);
 
   const addToCart = (product, variant, quantity) => {
-    // Generate a unique ID based on product, size, and color to prevent stacking different colors/sizes
-    const cartItemId = `${product._id}-${variant.size}-${variant.color || 'none'}`;
+    // Generate a unique ID based on product and size
+    const cartItemId = `${product._id}-${variant?.size || 'standard'}`;
 
     setCartItems(prev => {
       const existingItemIndex = prev.findIndex(item => item.id === cartItemId);

@@ -559,12 +559,6 @@ const Profile = () => {
                             <p className="text-sm font-medium text-gray-900 mb-1">{item.name}</p>
                             <div className="flex items-center gap-3 text-xs text-gray-500">
                               {item.variant?.size && <span>Size: {item.variant.size}</span>}
-                              {item.variant?.color && (
-                                <>
-                                  <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                  <span>Color: {item.variant.color}</span>
-                                </>
-                              )}
                               <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                               <span>Qty: {item.quantity}</span>
                             </div>
@@ -755,7 +749,7 @@ const Profile = () => {
               options={[
                 { value: 'Changed my mind', label: 'Changed my mind' },
                 { value: 'Found a cheaper / better alternative', label: 'Found a cheaper / better alternative' },
-                { value: 'Ordered wrong item, size, or color', label: 'Ordered wrong item, size, or color' },
+                { value: 'Ordered wrong item or size', label: 'Ordered wrong item or size' },
                 { value: 'Need to change shipping address', label: 'Need to change shipping address' },
                 { value: 'Delivery takes too long', label: 'Delivery takes too long' },
                 { value: 'Accidental order placed', label: 'Accidental order placed' },

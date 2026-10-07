@@ -309,7 +309,7 @@ const AdminReports = () => {
     const rows = filteredOrders.map(order => {
       const dt = dayjs(order.createdAt);
       const itemsSummary = (order.orderItems || [])
-        .map(item => `${item.name} (${item.variant?.size || ''}${item.variant?.color ? '/' + item.variant.color : ''} x${item.quantity})`)
+        .map(item => `${item.name} (${item.variant?.size || ''} x${item.quantity})`)
         .join('; ');
       const totalQty = (order.orderItems || []).reduce((acc, it) => acc + it.quantity, 0);
 

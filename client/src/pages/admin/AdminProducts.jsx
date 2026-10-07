@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Table, Typography, Button, Space, Modal, Form, Input, InputNumber, Upload, message, Popconfirm, Select, Card, Tag, Switch } from 'antd';
-import { Edit, Trash2, Plus, Upload as UploadIcon, MinusCircle, Image as ImageIcon, X, Tag as TagIcon } from 'lucide-react';
+import { Table, Typography, Button, Space, Modal, Form, Input, InputNumber, Upload, message, Popconfirm, Select, Card, Tag, Switch, Spin } from 'antd';
+import { Edit, Trash2, Plus, Upload as UploadIcon, MinusCircle, Tag as TagIcon, Zap } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { API_URL } from '../../config/api';
 import CategoryDiscountsManager from '../../components/admin/CategoryDiscountsManager';
@@ -8,69 +8,7 @@ import CategoryDiscountsManager from '../../components/admin/CategoryDiscountsMa
 const { Title } = Typography;
 const { Option } = Select;
 
-// Media asset upload & thumbnail pill component
-const VariantMediaUpload = ({ fileList, value, onChange }) => {
-  const currentList = fileList || value || [];
-  const file = currentList.length > 0 ? currentList[0] : null;
 
-  if (file) {
-    const imageUrl = file.url || file.response || (file.originFileObj ? URL.createObjectURL(file.originFileObj) : null);
-    const fileName = file.name || 'Image';
-
-    return (
-      <div className="flex items-center gap-2 p-1 px-2 bg-white border border-gray-200 rounded-lg shadow-sm max-w-[170px] w-full h-9">
-        {imageUrl ? (
-          <img 
-            src={imageUrl} 
-            alt={fileName} 
-            className="w-7 h-7 rounded object-cover border border-gray-100 flex-shrink-0" 
-          />
-        ) : (
-          <div className="w-7 h-7 rounded bg-neutral-900 flex items-center justify-center text-white flex-shrink-0">
-            <ImageIcon size={13} />
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-medium text-gray-800 truncate leading-tight" title={fileName}>
-            {fileName}
-          </p>
-          <span className="text-[9px] text-gray-400 block">Ready</span>
-        </div>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onChange) onChange([]);
-          }}
-          className="text-gray-400 hover:text-red-500 p-0.5 flex-shrink-0 transition-colors cursor-pointer"
-          title="Remove image"
-        >
-          <X size={13} />
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <Upload
-      beforeUpload={(newFile) => {
-        if (onChange) onChange([newFile]);
-        return false;
-      }}
-      maxCount={1}
-      showUploadList={false}
-      fileList={[]}
-    >
-      <button
-        type="button"
-        className="flex items-center gap-1.5 px-3 py-1 border border-dashed border-gray-300 rounded-lg text-xs font-medium text-gray-600 hover:border-black hover:text-black bg-white transition-all shadow-sm h-9 cursor-pointer"
-      >
-        <UploadIcon size={14} />
-        <span>Upload Img</span>
-      </button>
-    </Upload>
-  );
-};
 
 // Stepper input for stock quantity [-] [ Qty ] [+]
 const StockStepper = ({ value, onChange, isLowStock }) => {
@@ -141,11 +79,93 @@ const renderStatusBadge = (stockVal, thresholdVal) => {
   );
 };
 
+// Fast client-side image compression: reduces 10MB phone camera photos to ~250KB in milliseconds
+const compressImage = async (file) => {
+  // Only compress raster images; skip SVGs, GIFs, and already-small files under 300KB
+  if (
+    !file ||
+    !file.type ||
+    !file.type.startsWith('image/') ||
+    file.type === 'image/svg+xml' ||
+    file.type === 'image/gif' ||
+    file.size <= 300 * 1024
+  ) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const MAX_DIM = 1600;
+            let { width, height } = img;
+
+            if (width > MAX_DIM || height > MAX_DIM) {
+              if (width > height) {
+                height = Math.round((height * MAX_DIM) / width);
+                width = MAX_DIM;
+              } else {
+                width = Math.round((width * MAX_DIM) / height);
+                height = MAX_DIM;
+              }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              return resolve(file);
+            }
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob(
+              (blob) => {
+                if (blob && blob.size < file.size) {
+                  const rawName = file.name || 'product.jpg';
+                  const fileName = rawName.replace(/\.[^.]+$/, '.jpg');
+                  const compressedFile = new File([blob], fileName, {
+                    type: 'image/jpeg',
+                    lastModified: Date.now(),
+                  });
+                  resolve(compressedFile);
+                } else {
+                  resolve(file);
+                }
+              },
+              'image/jpeg',
+              0.82
+            );
+          } catch (canvasErr) {
+            console.warn('Canvas compression fallback:', canvasErr);
+            resolve(file);
+          }
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.warn('FileReader compression fallback:', err);
+      resolve(file);
+    }
+  });
+};
+
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [activeMainTab, setActiveMainTab] = useState('catalog'); // 'catalog' | 'discounts'
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'discontinued'
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitStep, setSubmitStep] = useState('');
   const [form] = Form.useForm();
   const [editingId, setEditingId] = useState(null);
   const [fileList, setFileList] = useState([]);
@@ -199,7 +219,7 @@ const AdminProducts = () => {
     // Default variant & active status
     form.setFieldsValue({ 
       isActive: true,
-      variants: [{ size: 'M', color: '', stock: 5, threshold: 2, image: [] }] 
+      variants: [{ size: 'M', stock: 5, threshold: 2 }] 
     });
     setIsModalVisible(true);
   };
@@ -226,25 +246,11 @@ const AdminProducts = () => {
       fabric: record.fabric,
       price: record.price,
       isActive: record.isActive !== false,
-      variants: record.variants && record.variants.length > 0 ? record.variants.map(v => {
-        const mapped = { 
-          size: v.size || '', 
-          color: v.color || '', 
-          stock: v.stock !== undefined ? v.stock : 0,
-          threshold: v.threshold !== undefined && v.threshold !== null ? v.threshold : 2
-        };
-        if (v.image) {
-          mapped.image = [{ 
-            uid: `-variant-${v._id || Math.random()}`, 
-            name: v.image.split('/').pop() || 'variant-image.jpg', 
-            status: 'done', 
-            url: v.image 
-          }];
-        } else {
-          mapped.image = [];
-        }
-        return mapped;
-      }) : [{ size: 'M', color: '', stock: 0, threshold: 2, image: [] }]
+      variants: record.variants && record.variants.length > 0 ? record.variants.map(v => ({
+        size: v.size || '', 
+        stock: v.stock !== undefined ? v.stock : 0,
+        threshold: v.threshold !== undefined && v.threshold !== null ? v.threshold : 2
+      })) : [{ size: 'M', stock: 0, threshold: 2 }]
     });
     
     setIsModalVisible(true);
@@ -273,10 +279,13 @@ const AdminProducts = () => {
   };
 
   const handleCancel = () => {
+    if (submitting) return;
     setIsModalVisible(false);
   };
 
   const onFinish = async (values) => {
+    setSubmitting(true);
+    setSubmitStep('Preparing product specifications...');
     try {
       const formData = new FormData();
       formData.append('name', values.name);
@@ -288,45 +297,47 @@ const AdminProducts = () => {
       formData.append('isActive', values.isActive !== undefined ? values.isActive : true);
 
       // Process variants
-      const processedVariants = values.variants ? values.variants.map((v, index) => {
+      const processedVariants = values.variants ? values.variants.map((v) => {
         const sizeStr = Array.isArray(v.size) ? (v.size[0] || '') : (v.size || '');
-        const variant = { 
+        return { 
           size: sizeStr, 
-          color: v.color || '', 
           stock: Number(v.stock) || 0,
           threshold: v.threshold !== undefined && v.threshold !== null ? Number(v.threshold) : 2
         };
-        if (v.image && v.image.length > 0) {
-          const fileItem = v.image[0];
-          if (fileItem.originFileObj) {
-            formData.append(`variantImage_${index}`, fileItem.originFileObj);
-            variant.hasNewImage = true;
-          } else if (fileItem.url || fileItem.response) {
-            variant.image = fileItem.url || fileItem.response;
-          }
-        }
-        return variant;
       }) : [];
 
       formData.append('variants', JSON.stringify(processedVariants));
 
       // Separate new files from existing images
       const existingImages = [];
+      const newFiles = [];
+
       fileList.forEach(file => {
         const actualFile = file.originFileObj || file;
         // Check if it's a native File object (new upload)
         if (actualFile instanceof File || actualFile instanceof Blob) {
-          formData.append('images', actualFile);
+          newFiles.push(actualFile);
         } 
         // Otherwise, if it's an existing image object
         else if (file.response || file.url) {
           existingImages.push(file.response || file.url);
         }
       });
+
+      // Compress and optimize new image uploads in parallel
+      if (newFiles.length > 0) {
+        setSubmitStep(`Optimizing ${newFiles.length} photo${newFiles.length > 1 ? 's' : ''} for rapid upload...`);
+        const optimizedFiles = await Promise.all(newFiles.map(compressImage));
+        optimizedFiles.forEach(compressed => {
+          formData.append('images', compressed);
+        });
+      }
       
       if (editingId) {
-          formData.append('existingImages', JSON.stringify(existingImages));
+        formData.append('existingImages', JSON.stringify(existingImages));
       }
+
+      setSubmitStep(editingId ? 'Saving product changes...' : 'Publishing product to catalog...');
 
       const url = editingId 
         ? `${API_URL}/api/products/${editingId}`
@@ -343,16 +354,19 @@ const AdminProducts = () => {
       });
 
       if (response.ok) {
-        message.success(`Product ${editingId ? 'updated' : 'added'} successfully`);
+        message.success(`Product ${editingId ? 'updated' : 'published'} successfully!`);
         setIsModalVisible(false);
         fetchProducts();
       } else {
         const errorData = await response.json();
-        message.error(errorData.message || `Failed to ${editingId ? 'update' : 'add'} product`);
+        message.error(errorData.message || `Failed to ${editingId ? 'update' : 'publish'} product`);
       }
     } catch (error) {
       console.error('Error saving product:', error);
       message.error('An error occurred while saving the product');
+    } finally {
+      setSubmitting(false);
+      setSubmitStep('');
     }
   };
 
@@ -423,7 +437,7 @@ const AdminProducts = () => {
               <div className="text-[11px] flex flex-wrap gap-1">
                 {lowStockVariants.map((lv, idx) => (
                   <span key={idx} className="bg-red-50 text-red-700 border border-red-200 px-1.5 py-0.5 rounded text-[10px]">
-                    {lv.size}{lv.color ? `/${lv.color}` : ''}: <strong>{lv.stock}</strong> (min {lv.threshold ?? 2})
+                    {lv.size}: <strong>{lv.stock}</strong> (min {lv.threshold ?? 2})
                   </span>
                 ))}
               </div>
@@ -611,7 +625,9 @@ const AdminProducts = () => {
           </div>
         }
         open={isModalVisible}
-        onCancel={handleCancel}
+        onCancel={submitting ? undefined : handleCancel}
+        closable={!submitting}
+        maskClosable={!submitting}
         footer={null}
         width={1040}
         destroyOnClose
@@ -721,7 +737,7 @@ const AdminProducts = () => {
                     if (catStr === 'Menswear') {
                       subOptions = ['Shirts', 'T-Shirts', 'Trousers', 'Jeans', 'Shorts', 'Sarongs'];
                     } else if (catStr === 'Womenswear') {
-                      subOptions = ['Blouses & Tops', 'Dresses', 'Frocks', 'Skirts', 'Trousers/Jeans', 'Sarees'];
+                      subOptions = ['T-Shirts', 'Blouses & Tops', 'Dresses', 'Frocks', 'Skirts', 'Trousers/Jeans', 'Sarees'];
                     } else if (catStr === 'Accessories') {
                       subOptions = ['Ties', 'Belts', 'Vests', 'Socks'];
                     }
@@ -792,9 +808,15 @@ const AdminProducts = () => {
                   <p className="text-xs text-gray-400 m-0 mt-0.5">High-resolution gallery photos (up to 5 images). The first image serves as the primary catalog cover.</p>
                 </div>
               </div>
-              <span className="text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 px-3 py-1 rounded-lg self-start sm:self-center">
-                {fileList.length}/5 Images Uploaded
-              </span>
+              <div className="flex items-center gap-2 self-start sm:self-center">
+                <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg font-medium flex items-center gap-1">
+                  <Zap size={12} className="text-emerald-600 fill-emerald-600" />
+                  Fast Auto-Compression Active
+                </span>
+                <span className="text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 px-3 py-1 rounded-lg">
+                  {fileList.length}/5 Images Uploaded
+                </span>
+              </div>
             </div>
 
             <div className="pt-2">
@@ -818,7 +840,7 @@ const AdminProducts = () => {
               </span>
               <div>
                 <h4 className="font-serif text-base font-semibold text-gray-900 m-0 leading-tight">Inventory & Variations Matrix</h4>
-                <p className="text-xs text-gray-400 m-0 mt-0.5">Configure sizing, colors, individual stock, and alert thresholds (threshold = 2)</p>
+                <p className="text-xs text-gray-400 m-0 mt-0.5">Configure sizing, individual stock, and alert thresholds (threshold = 2)</p>
               </div>
             </div>
 
@@ -859,12 +881,10 @@ const AdminProducts = () => {
 
                       {/* Table View */}
                       <div className="overflow-x-auto pb-2">
-                        <div className="min-w-[850px]">
+                        <div className="min-w-[700px]">
                           {/* Headers */}
-                          <div className="grid grid-cols-[130px_160px_170px_130px_110px_150px_40px] gap-3 px-2 pb-2 text-[10px] font-bold tracking-wider text-gray-400 uppercase border-b border-gray-100 mb-3 items-center">
+                          <div className="grid grid-cols-[160px_180px_150px_140px_40px] gap-3 px-2 pb-2 text-[10px] font-bold tracking-wider text-gray-400 uppercase border-b border-gray-100 mb-3 items-center">
                             <div>SIZE</div>
-                            <div>COLORWAY</div>
-                            <div>MEDIA ASSET</div>
                             <div>INVENTORY STOCK</div>
                             <div>MIN. ALERT LEVEL</div>
                             <div>STATUS</div>
@@ -882,7 +902,7 @@ const AdminProducts = () => {
                                   return (
                                     <div 
                                       key={key} 
-                                      className="grid grid-cols-[130px_160px_170px_130px_110px_150px_40px] gap-3 px-2 py-2 items-center bg-white hover:bg-neutral-50/70 rounded-lg transition-colors border border-gray-100 shadow-sm"
+                                      className="grid grid-cols-[160px_180px_150px_140px_40px] gap-3 px-2 py-2 items-center bg-white hover:bg-neutral-50/70 rounded-lg transition-colors border border-gray-100 shadow-sm"
                                     >
                                       {/* SIZE (Plain text input - no dropdown) */}
                                       <div>
@@ -896,36 +916,6 @@ const AdminProducts = () => {
                                             placeholder="e.g. S, M, L, 32"
                                             className="h-9 rounded-lg border-gray-200 shadow-sm text-xs font-medium"
                                           />
-                                        </Form.Item>
-                                      </div>
-
-                                      {/* COLORWAY (User requested: color eka text eka vithrak ethi) */}
-                                      <div>
-                                        <Form.Item
-                                          {...restField}
-                                          name={[name, 'color']}
-                                          style={{ margin: 0 }}
-                                        >
-                                          <Input
-                                            placeholder="e.g. Navy Blue"
-                                            className="h-9 rounded-lg border-gray-200 shadow-sm text-xs"
-                                          />
-                                        </Form.Item>
-                                      </div>
-
-                                      {/* MEDIA ASSET */}
-                                      <div>
-                                        <Form.Item
-                                          {...restField}
-                                          name={[name, 'image']}
-                                          valuePropName="fileList"
-                                          getValueFromEvent={(e) => {
-                                            if (Array.isArray(e)) return e;
-                                            return e && e.fileList;
-                                          }}
-                                          style={{ margin: 0 }}
-                                        >
-                                          <VariantMediaUpload />
                                         </Form.Item>
                                       </div>
 
@@ -983,7 +973,7 @@ const AdminProducts = () => {
                                 {/* Add Another Variant Button */}
                                 <button
                                   type="button"
-                                  onClick={() => add({ size: '', color: '', stock: 0, threshold: 2, image: [] })}
+                                  onClick={() => add({ size: '', stock: 0, threshold: 2 })}
                                   className="w-full mt-3 py-3 border-2 border-dashed border-gray-200 hover:border-black rounded-xl text-xs font-bold text-gray-600 hover:text-black hover:bg-gray-50/50 transition-all flex items-center justify-center gap-2 tracking-wide uppercase shadow-sm cursor-pointer"
                                 >
                                   <Plus size={16} />
@@ -1001,21 +991,44 @@ const AdminProducts = () => {
             </div>
           </div>
 
+          {/* Active Publishing Banner when submitting */}
+          {submitting && (
+            <div className="p-3.5 bg-neutral-900 border border-neutral-800 rounded-xl flex items-center justify-between text-white shadow-lg animate-pulse">
+              <div className="flex items-center gap-3">
+                <Spin size="small" />
+                <span className="text-xs font-semibold tracking-wide">
+                  {submitStep || 'Publishing product to catalog...'}
+                </span>
+              </div>
+              <span className="text-[11px] text-emerald-400 font-mono font-medium">
+                Fast Upload Active
+              </span>
+            </div>
+          )}
+
           {/* Modal Footer Actions */}
           <div className="pt-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <span className="text-xs text-gray-400">
               All inventory stock thresholds and details sync in real time across StyleHub Sri Lanka.
             </span>
             <Space size="middle">
-              <Button onClick={handleCancel} className="h-10 px-5 rounded-lg text-xs font-semibold">
+              <Button 
+                onClick={handleCancel} 
+                disabled={submitting}
+                className="h-10 px-5 rounded-lg text-xs font-semibold"
+              >
                 Cancel
               </Button>
               <Button 
                 type="primary" 
                 htmlType="submit" 
-                className="bg-black text-white hover:bg-neutral-800 h-10 px-7 rounded-lg text-xs font-bold tracking-wider uppercase shadow-sm cursor-pointer"
+                loading={submitting}
+                disabled={submitting}
+                className="bg-black text-white hover:bg-neutral-800 h-10 px-7 rounded-lg text-xs font-bold tracking-wider uppercase shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {editingId ? "Save Product Changes" : "Publish Product"}
+                {submitting 
+                  ? (editingId ? "Saving..." : "Publishing...") 
+                  : (editingId ? "Save Product Changes" : "Publish Product")}
               </Button>
             </Space>
           </div>

@@ -69,7 +69,7 @@ const Navbar = () => {
             <div className="relative group cursor-pointer py-4">
               <Link to="/collections/womenswear" className="flex items-center gap-1 hover:text-black transition-colors">Womens <ChevronDown size={16} /></Link>
               <div className="absolute left-0 top-full mt-0 w-52 bg-white shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-50">
-                {['Blouses & Tops', 'Dresses', 'Frocks', 'Skirts', 'Trousers/Jeans', 'Sarees'].map(item => (
+                {['T-Shirts', 'Blouses & Tops', 'Dresses', 'Frocks', 'Skirts', 'Trousers/Jeans', 'Sarees'].map(item => (
                   <Link key={item} to={`/collections/womenswear?sub=${encodeURIComponent(item)}`} className="px-4 py-2 text-sm text-gray-600 hover:text-black hover:bg-gray-50">{item}</Link>
                 ))}
               </div>

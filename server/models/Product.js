@@ -5,13 +5,6 @@ const variantSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  color: {
-    type: String,
-    trim: true,
-  },
-  image: {
-    type: String, // URL to the specific variant image
-  },
   stock: {
     type: Number,
     required: true,

@@ -92,9 +92,8 @@ const getLowStockProducts = async (req, res) => {
             productId: product._id,
             productName: product.name,
             category: product.category,
-            image: variant.image || (product.images && product.images[0]) || '',
+            image: (product.images && product.images[0]) || '',
             size: variant.size,
-            color: variant.color || '',
             stock: variant.stock,
             threshold: threshold,
           });
@@ -121,21 +120,12 @@ const createProduct = async (req, res) => {
 
     const images = req.files ? req.files.filter(f => f.fieldname === 'images').map(file => file.path) : [];
 
-    // Map variant images & ensure threshold default
-    parsedVariants = parsedVariants.map((v, index) => {
-      if (v.hasNewImage && req.files) {
-        const file = req.files.find(f => f.fieldname === `variantImage_${index}`);
-        if (file) {
-          v.image = file.path;
-        }
-      }
-      delete v.hasNewImage;
-      return {
-        ...v,
-        stock: Number(v.stock) || 0,
-        threshold: v.threshold !== undefined && v.threshold !== null ? Number(v.threshold) : 2,
-      };
-    });
+    // Ensure variants threshold default
+    parsedVariants = parsedVariants.map((v) => ({
+      size: v.size || '',
+      stock: Number(v.stock) || 0,
+      threshold: v.threshold !== undefined && v.threshold !== null ? Number(v.threshold) : 2,
+    }));
 
     const product = new Product({
       name,
@@ -151,15 +141,22 @@ const createProduct = async (req, res) => {
 
     const createdProduct = await product.save();
 
-    // Check if any variant is initially below threshold
-    for (const v of createdProduct.variants) {
-      const threshold = typeof v.threshold === 'number' ? v.threshold : 2;
-      if (v.stock < threshold) {
-        await checkAndNotifyLowStock(createdProduct, v);
-      }
-    }
-
+    // Respond immediately to the client for lightning-fast publishing
     res.status(201).json(createdProduct);
+
+    // Asynchronously check and notify low stock in background without holding HTTP response
+    setImmediate(async () => {
+      try {
+        for (const v of createdProduct.variants) {
+          const threshold = typeof v.threshold === 'number' ? v.threshold : 2;
+          if (v.stock < threshold) {
+            await checkAndNotifyLowStock(createdProduct, v);
+          }
+        }
+      } catch (notifyErr) {
+        console.error('Background low stock check error:', notifyErr);
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -200,34 +197,32 @@ const updateProduct = async (req, res) => {
       // Combine kept existing images with newly uploaded images
       product.images = [...parsedExistingImages, ...newImages];
 
-      // Map variant images & ensure threshold
-      parsedVariants = parsedVariants.map((v, index) => {
-        if (v.hasNewImage && req.files) {
-          const file = req.files.find(f => f.fieldname === `variantImage_${index}`);
-          if (file) {
-            v.image = file.path;
-          }
-        }
-        delete v.hasNewImage;
-        return {
-          ...v,
-          stock: Number(v.stock) || 0,
-          threshold: v.threshold !== undefined && v.threshold !== null ? Number(v.threshold) : 2,
-        };
-      });
+      // Ensure variants threshold default
+      parsedVariants = parsedVariants.map((v) => ({
+        size: v.size || '',
+        stock: Number(v.stock) || 0,
+        threshold: v.threshold !== undefined && v.threshold !== null ? Number(v.threshold) : 2,
+      }));
       if (variants) product.variants = parsedVariants;
 
       const updatedProduct = await product.save();
 
-      // Check if any variant is now below threshold
-      for (const v of updatedProduct.variants) {
-        const threshold = typeof v.threshold === 'number' ? v.threshold : 2;
-        if (v.stock < threshold) {
-          await checkAndNotifyLowStock(updatedProduct, v);
-        }
-      }
-
+      // Respond immediately to the client
       res.json(updatedProduct);
+
+      // Asynchronously check and notify low stock in background without holding HTTP response
+      setImmediate(async () => {
+        try {
+          for (const v of updatedProduct.variants) {
+            const threshold = typeof v.threshold === 'number' ? v.threshold : 2;
+            if (v.stock < threshold) {
+              await checkAndNotifyLowStock(updatedProduct, v);
+            }
+          }
+        } catch (notifyErr) {
+          console.error('Background low stock check error:', notifyErr);
+        }
+      });
     } else {
       res.status(404).json({ message: 'Product not found' });
     }

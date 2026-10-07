@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'; // Trigger Vite HMR
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ConfigProvider, Layout } from 'antd';
 import Home from './pages/Home';

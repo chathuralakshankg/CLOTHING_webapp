@@ -42,7 +42,7 @@ const createOrder = async (req, res) => {
 
       // Find the specific variant
       const variantIndex = product.variants.findIndex(
-        (v) => v.size === item.variant.size && (item.variant.color ? v.color === item.variant.color : true)
+        (v) => v.size === item.variant?.size
       );
 
       if (variantIndex === -1) {
@@ -52,7 +52,7 @@ const createOrder = async (req, res) => {
       const variant = product.variants[variantIndex];
 
       if (variant.stock < item.quantity) {
-        return res.status(400).json({ message: `Insufficient stock for ${item.name} (${variant.size}${variant.color ? ' - ' + variant.color : ''})` });
+        return res.status(400).json({ message: `Insufficient stock for ${item.name} (${variant.size})` });
       }
 
       // Check if an active category discount applies to this product
@@ -203,7 +203,7 @@ const updateOrderStatus = async (req, res) => {
             const product = await Product.findById(item.product);
             if (product && product.variants) {
               const variantIndex = product.variants.findIndex(
-                (v) => v.size === item.variant?.size && (item.variant?.color ? v.color === item.variant.color : true)
+                (v) => v.size === item.variant?.size
               );
               if (variantIndex !== -1) {
                 product.variants[variantIndex].stock += item.quantity;
@@ -268,7 +268,7 @@ const cancelOrder = async (req, res) => {
         const product = await Product.findById(item.product);
         if (product && product.variants) {
           const variantIndex = product.variants.findIndex(
-            (v) => v.size === item.variant?.size && (item.variant?.color ? v.color === item.variant.color : true)
+            (v) => v.size === item.variant?.size
           );
           if (variantIndex !== -1) {
             product.variants[variantIndex].stock += item.quantity;
