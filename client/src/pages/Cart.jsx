@@ -38,7 +38,7 @@ const Cart = () => {
           <div className="flex flex-col items-center justify-center py-20">
             <Empty description="Your bag is empty" className="mb-6" />
             <Button type="primary" className="bg-black h-12 px-8" onClick={() => navigate('/collections')}>
-              Continue Shoppin
+              Continue Shopping
             </Button>
           </div>
         ) : (
