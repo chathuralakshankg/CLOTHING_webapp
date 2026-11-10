@@ -30,7 +30,7 @@ const Cart = () => {
     <Layout className="min-h-screen bg-white">
       <AnnouncementBar />
       <Navbar />
-      
+
       <Content className="max-w-7xl mx-auto w-full px-6 py-12">
         <Title level={2} className="!mb-8 !font-serif text-center">Your Shopping Bag</Title>
 
@@ -38,7 +38,7 @@ const Cart = () => {
           <div className="flex flex-col items-center justify-center py-20">
             <Empty description="Your bag is empty" className="mb-6" />
             <Button type="primary" className="bg-black h-12 px-8" onClick={() => navigate('/collections')}>
-              Continue Shopping
+              Continue Shoppin
             </Button>
           </div>
         ) : (
@@ -48,13 +48,13 @@ const Cart = () => {
               {cartItems.map((item) => (
                 <div key={item.id} className="flex gap-6 py-6 border-b border-gray-100 relative">
                   <Link to={`/product/${item.product._id}`} className="w-24 h-32 flex-shrink-0 bg-gray-50 block">
-                    <img 
-                      src={item.variant.image || (item.product.images && item.product.images[0])} 
-                      alt={item.product.name} 
-                      className="w-full h-full object-cover" 
+                    <img
+                      src={item.variant.image || (item.product.images && item.product.images[0])}
+                      alt={item.product.name}
+                      className="w-full h-full object-cover"
                     />
                   </Link>
-                  
+
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
                       <div className="flex justify-between items-start">
@@ -65,7 +65,7 @@ const Cart = () => {
                           LKR {(getItemPrice(item) * item.quantity).toLocaleString()}
                         </span>
                       </div>
-                      
+
                       <div className="text-sm text-gray-500 mt-1 flex flex-col gap-1">
                         <span>Size: {item.variant.size}</span>
                         <div className="flex items-center gap-1.5 text-xs">
@@ -84,9 +84,9 @@ const Cart = () => {
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-3">
                           <span className="text-sm text-gray-500">Qty:</span>
-                          <InputNumber 
-                            min={1} 
-                            value={item.quantity} 
+                          <InputNumber
+                            min={1}
+                            value={item.quantity}
                             onChange={(val) => updateQuantity(item.id, val)}
                             className="w-16"
                           />
@@ -100,8 +100,8 @@ const Cart = () => {
                           </span>
                         )}
                       </div>
-                      
-                      <button 
+
+                      <button
                         onClick={() => removeFromCart(item.id)}
                         className="text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1 text-sm mt-1"
                       >
@@ -117,7 +117,7 @@ const Cart = () => {
             <div className="w-full lg:w-1/3">
               <div className="bg-gray-50 p-6 md:p-8 rounded-sm sticky top-24 border border-gray-100">
                 <Title level={4} className="!mb-6 !font-serif">Order Summary</Title>
-                
+
                 {/* Free Shipping Progress Indicator */}
                 <div className="mb-6 p-4 rounded bg-white border border-gray-200">
                   <div className="flex items-center justify-between text-xs mb-2">
@@ -134,7 +134,7 @@ const Cart = () => {
                     <span className="font-bold text-gray-500 text-[11px]">{progressPercent}%</span>
                   </div>
                   <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className={`h-full transition-all duration-500 rounded-full ${isFreeShipping ? 'bg-emerald-500' : 'bg-black'}`}
                       style={{ width: `${progressPercent}%` }}
                     />
@@ -145,7 +145,7 @@ const Cart = () => {
                   <Text className="text-gray-600">Subtotal ({cartItems.reduce((acc, item) => acc + item.quantity, 0)} items)</Text>
                   <Text className="font-medium">LKR {subtotal.toLocaleString()}</Text>
                 </div>
-                
+
                 <div className="flex justify-between items-start mb-3 text-sm">
                   <div>
                     <Text className="text-gray-600 block">Island-wide Shipping</Text>
@@ -166,8 +166,8 @@ const Cart = () => {
                   </div>
                 </div>
 
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   onClick={() => navigate('/checkout')}
                   disabled={cartItems.some(item => item.quantity > item.variant.stock)}
                   className={`w-full h-14 text-sm tracking-widest uppercase font-semibold flex items-center justify-center gap-2 ${cartItems.some(item => item.quantity > item.variant.stock) ? 'bg-gray-400 text-white cursor-not-allowed border-none' : 'bg-black'}`}
